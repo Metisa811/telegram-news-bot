@@ -2,7 +2,7 @@ name: News Bot Runner
 
 on:
   schedule:
-    # هر ۲۰ دقیقه یک‌بار اجرا می‌شود
+    # اجرا هر ۳۰ دقیقه یک‌بار به صورت خودکار
     - cron: '*/30 * * * *'
   workflow_dispatch: # دکمه اجرای دستی
 
@@ -10,7 +10,7 @@ jobs:
   run-bot:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # دسترسی ذخیره فایل خبرها
+      contents: write
 
     steps:
       - name: دریافت مخزن
