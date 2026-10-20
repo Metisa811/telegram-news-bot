@@ -2,13 +2,22 @@ name: News Bot Runner
 
 on:
   schedule:
-    
-    - cron: '*/30 * * * *'
-  workflow_dispatch: 
+    - cron: '7 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'مدت اجرا به دقیقه (برای تست 10 بگذار)'
+        required: false
+        default: '10'
+
+concurrency:
+  group: news-bot
+  cancel-in-progress: false
 
 jobs:
   run-bot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
     permissions:
       contents: write
 
@@ -22,19 +31,22 @@ jobs:
           python-version: '3.11'
 
       - name: نصب پکیج‌ها
-        run: pip install google-genai feedparser requests
+        run: pip install feedparser requests
 
       - name: اجرای ربات
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          RUN_MINUTES: ${{ github.event.inputs.minutes || '330' }}
         run: python bot.py
 
       - name: ذخیره خبرهای خوانده‌شده
+        if: always()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add sent_articles.json
           git commit -m "Update sent articles [skip ci]" || exit 0
+          git pull --rebase || true
           git push
