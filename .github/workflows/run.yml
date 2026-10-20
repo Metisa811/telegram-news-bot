@@ -3,7 +3,7 @@ name: News Bot Runner
 on:
   schedule:
     # هر ۲۰ دقیقه یک‌بار اجرا می‌شود
-    - cron: '*/20 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch: # دکمه اجرای دستی
 
 jobs:
