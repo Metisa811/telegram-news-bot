@@ -1,0 +1,40 @@
+name: News Bot Runner
+
+on:
+  schedule:
+    # هر ۲۰ دقیقه یک‌بار اجرا می‌شود
+    - cron: '*/20 * * * *'
+  workflow_dispatch: # دکمه اجرای دستی
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # دسترسی ذخیره فایل خبرها
+
+    steps:
+      - name: دریافت مخزن
+        uses: actions/checkout@v4
+
+      - name: راه‌اندازی پایتون
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: نصب پکیج‌ها
+        run: pip install google-genai feedparser requests
+
+      - name: اجرای ربات
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python bot.py
+
+      - name: ذخیره خبرهای خوانده‌شده
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add sent_articles.json
+          git commit -m "Update sent articles [skip ci]" || exit 0
+          git push
