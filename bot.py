@@ -17,7 +17,7 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not GROQ_API_KEY:
     sys.exit(1)
 
 # اول مدل قوی‌تر، اگر سهمیه‌اش تمام شد مدل سریع‌تر
-MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
 
 DB_FILE = "sent_articles.json"
 DB_MAX = 3000            # حداکثر تعداد شناسه‌های ذخیره‌شده
@@ -150,15 +150,19 @@ def summarize(title, summary):
 """
     for model in MODELS:
         try:
+            payload = {
+                "model": model,
+                "temperature": 0.3,
+                "max_completion_tokens": 800,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+            if "gpt-oss" in model:
+                payload["reasoning_effort"] = "low"  # مصرف توکن کمتر
             r = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-                json={
-                    "model": model,
-                    "temperature": 0.3,
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-                timeout=30,
+                json=payload,
+                timeout=45,
             )
             if r.status_code == 429:
                 print(f"⏳ سهمیه {model} پر است، مدل بعدی...")
@@ -166,7 +170,8 @@ def summarize(title, summary):
             if r.status_code != 200:
                 print(f"⚠️ Groq {model}: {r.status_code} {r.text[:200]}")
                 continue
-            text = r.json()["choices"][0]["message"]["content"].strip()
+            text = r.json()["choices"][0]["message"]["content"] or ""
+            text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
             if text:
                 return text
         except Exception as e:
@@ -241,7 +246,21 @@ def run_once():
             sent_count += 1
 
 
+def log_available_models():
+    try:
+        r = requests.get(
+            "https://api.groq.com/openai/v1/models",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            timeout=20,
+        )
+        ids = [m["id"] for m in r.json().get("data", [])]
+        print("مدل‌های در دسترس:", ", ".join(ids))
+    except Exception as e:
+        print(f"⚠️ دریافت لیست مدل‌ها ناموفق: {e}")
+
+
 def main():
+    log_available_models()
     deadline = time.time() + RUN_MINUTES * 60
     print(f"شروع؛ مدت اجرا: {RUN_MINUTES:.0f} دقیقه")
     while True:
