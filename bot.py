@@ -65,40 +65,37 @@ def fetch_telegram_channel_posts(username):
                         posts.append({
                             "id": f"tg_{post_id}",
                             "title": first_line,
-                            "summary": clean_text,
-                            "link": f"https://t.me/{post_id}"
+                            "summary": clean_text
                         })
     except Exception as e:
         print(f"⚠️ خطا در کانال @{username}: {e}")
     return posts
 
-def summarize_with_gemini(title, summary, link):
+def summarize_with_gemini(title, summary):
     prompt = f"""
-نقش: ادیتور ارشد خبر فوری در حوزه تحولات نظامی و دیپلماتیک خاورمیانه و ایران.
+نقش: ادیتور خبر فوری (Breaking News) در تلگرام.
 
-متن رویداد:
+متن خبر:
 تیتر: {title}
 متن: {summary}
 
-دستور: این خبر را به فارسی روان و جذاب به سبک فوری بازنویسی کن:
-🚨 [یک تیتر جذاب و فوری همراه با ایموجی]
+دستورالعمل تولید متن:
+خبر را بسیار کوتاه، گزیده، بدون اطناب و به سبک فوری بنویس:
+- خط اول: 🚨 [یک تیتر کوتاه و جذاب همراه با ایموجی مناسب]
+- خطوط بعدی: نهایتاً ۲ الی ۳ بولت بسیار کوتاه (هر بولت نهایتاً یک سطر) که فقط اصل فکت و اصل اتفاق را بگوید.
+- خط آخر: یک جمله فوق‌العاده کوتاه درباره پیامد یا اهمیت خبر.
 
-🔹 جزئیات میدان و تحولات:
-- اصل خبر و طرف‌های درگیر
-- مواضع میدانی یا سیاسی طرفین
-- پیامدها یا فکت‌های معتبر
-
-⚠️ ارزیابی و پیامد:
-یک جمله کوتاه تحلیلی درباره اثر این اتفاق بر منطقه یا بازار.
-هیچ توضیح، سلام یا پیش‌گفتاری ننویس.
+قوانین مهم:
+- اصلاً لینک یا متنی تحت عنوان «منبع» نگذار.
+- زیاده‌گویی نکن و حجم کل متن زیر ۵۰ کلمه باشد.
+- هیچ پیش‌گفتار، سلام یا توضیحی خارج از قالب ننویس.
 """
     try:
         response = client.models.generate_content(
             model="gemini-3.8-flash",
             contents=prompt,
         )
-        text = response.text.strip()
-        return f"{text}\n\n🔗 [منبع خبر]({link})"
+        return response.text.strip()
     except Exception as e:
         err = str(e)
         print(f"⚠️ خطای جمنای: {err}")
@@ -112,7 +109,7 @@ def send_to_telegram(message):
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
         "parse_mode": "Markdown",
-        "disable_web_page_preview": False
+        "disable_web_page_preview": True
     }
     try:
         res = requests.post(url, json=payload, timeout=15)
@@ -131,27 +128,24 @@ def main():
     sent_articles = load_sent_articles()
     candidates = []
 
-    # استخراج ۲ پیام آخر از کانال‌های تلگرام
+    # استخراج پست‌های تلگرام
     for ch in TELEGRAM_CHANNELS:
         posts = fetch_telegram_channel_posts(ch)
         candidates.extend(posts[-2:])
 
-    # استخراج ۲ خبر آخر از فیدها
+    # استخراج فیدهای RSS
     for url in RSS_FEEDS:
         feed = feedparser.parse(url)
         for entry in feed.entries[:2]:
             candidates.append({
                 "id": entry.get("id", entry.get("link")),
                 "title": entry.get("title", ""),
-                "summary": entry.get("summary", ""),
-                "link": entry.get("link", "")
+                "summary": entry.get("summary", "")
             })
 
-    # غربالگری: فقط خبرهایی که تابحال ارسال نشده‌اند
     unprocessed = [c for c in candidates if c["id"] not in sent_articles]
     print(f"تعداد خبرهای جدید واجد شرایط: {len(unprocessed)}")
 
-    # در هر اجرا حداکثر ۲ خبر ارسال می‌شود تا سهمیه روزانه تمام نشود
     max_send = 2
     sent_count = 0
 
@@ -159,11 +153,11 @@ def main():
         if sent_count >= max_send:
             break
 
-        print(f"📌 پردازش: {item['title'][:50]}...")
-        summary = summarize_with_gemini(item["title"], item["summary"], item["link"])
+        print(f"📌 پردازش: {item['title'][:40]}...")
+        summary = summarize_with_gemini(item["title"], item["summary"])
 
         if summary == "QUOTA_EXCEEDED":
-            print("⛔ سهمیه API به پایان رسیده است؛ اجرای فعلی متوقف می‌شود.")
+            print("⛔ سهمیه تمام است.")
             break
 
         if summary and send_to_telegram(summary):
@@ -173,8 +167,8 @@ def main():
             sent_count += 1
 
             if sent_count < max_send:
-                print("⏳ وقفه ۹۰ ثانیه‌ای...")
-                time.sleep(90)
+                print("⏳ وقفه ۶۰ ثانیه‌ای...")
+                time.sleep(60)
 
     print("پایان عملیات.")
 
