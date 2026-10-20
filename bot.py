@@ -52,7 +52,7 @@ def summarize_with_gemini(title, summary, link):
 """
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.5-flash",
             contents=prompt,
         )
         text = response.text.strip()
