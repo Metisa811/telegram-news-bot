@@ -10,7 +10,19 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-RSS_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
+# فیدهای تفکیک‌شده بر اساس اولویت‌های درخواستی شما:
+# ۱. تنش ایران، اسرائیل، آمریکا و خاورمیانه
+# ۲. اخبار سیاسی اروپا و تحولات بین‌المللی
+# ۳. رصد توئیت‌ها و خبرهای فوری به سبک X
+RSS_FEEDS = [
+    # جستجوی کلیدواژه‌های تنش ایران، اسرائیل و آمریکا در اخبار فوری بین‌المللی
+    "https://news.google.com/rss/search?q=Iran+OR+Israel+OR+Hezbollah+OR+%22Middle+East%22+when:1d&hl=en-US&gl=US&ceid=US:en",
+    # اخبار سیاسی اروپا و تصمیمات امنیتی/دیپلماتیک
+    "https://news.google.com/rss/search?q=European+Union+OR+NATO+OR+%22Europe+politics%22+when:1d&hl=en-US&gl=US&ceid=US:en",
+    # اخبار داخل ایران و دیپلماسی
+    "https://news.google.com/rss/search?q=Iran+politics+OR+Tehran+when:1d&hl=en-US&gl=US&ceid=US:en"
+]
+
 DB_FILE = "sent_articles.json"
 
 if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not GEMINI_API_KEY:
@@ -18,12 +30,7 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not GEMINI_API_KEY:
     sys.exit(1)
 
 client = genai.Client(api_key=GEMINI_API_KEY)
-
-# مدل‌های فعال و پیشنهادی رسمی گوگل
-AVAILABLE_MODELS = [
-    "gemini-3.1-pro-preview",
-    "gemini-3.8-flash"
-]
+AVAILABLE_MODELS = ["gemini-3.8-flash"]
 
 def load_sent_articles():
     if os.path.exists(DB_FILE):
@@ -39,39 +46,49 @@ def save_sent_articles(articles):
         json.dump(list(articles), f, ensure_ascii=False, indent=2)
 
 def summarize_with_gemini(title, summary, link):
+    # پرامپت حرفه‌ای و تخصصی برای اخبار جنگ، ژئوپلیتیک و سبک فوری شبکه X
     prompt = f"""
-تو یک نویسنده و ادیتور خبر حرفه‌ای هستی. این خبر انگلیسی را به فارسی روان و جذاب خلاصه کن.
+نقش تو: ادیتور ارشد و تحلیل‌گر ارشد میز خبر فوری (Breaking News) و مسائل استراتژیک بین‌الملل با تمرکز ویژه بر خاورمیانه، ایران و اروپا.
 
-عنوان خبر: {title}
-متن خام خبر: {summary}
+متن خام ورودی:
+عنوان: {title}
+خلاصه: {summary}
 
-قالب خروجی:
-- تیتر جذاب در خط اول همراه با ایموجی مرتبط
-- ۳ بولت‌پوینت خوانا و کلیدی از متن
-- یک خط جمع‌بندی درباره اهمیت رویداد
-متن آماده تلگرام باشد و هیچ توضیح یا پیش‌گفتاری اضافه نکن.
+وظیفه:
+خبر را با لحنی جدی، حرفه‌ای، بی‌طرف، جذاب و به سبک پست‌های تحلیلی/فوری شبکه X (توییتر) به زبان فارسی سلیس بنویس.
+
+قالب خروجی (دقیقاً با همین ساختار باشد):
+🚨 [یک تیتر کوتاه، تکان‌دهنده و جذاب به سبک Breaking News همراه ایموجی مرتبط]
+
+🔹 جزئیات میدان و دیپلماسی:
+- نکته اول: اصل رویداد (چه اتفاقی افتاده، بازیگران چه کسانی هستند؟)
+- نکته دوم: واکنش طرف‌ها (موضع تهران، واشنگتن، تل‌آویو یا پایتخت‌های اروپایی)
+- نکته سوم: شواهد میدانی، بیانیه‌ها یا پیامدهای نظامی/امنیتی مستقیم
+
+⚠️ تحلیل و ارزیابی پیامد:
+یک پاراگراف کوتاه (حداکثر دو جمله) که نشان دهد این تحول چه تأثیری بر موازنه قوا در منطقه، اقتصاد یا احتمال تشدید درگیری دارد.
+
+نکات الزامی:
+- ادعاها یا اخبار تأییدنشده را مشخص کن.
+- از بزرگ‌نمایی بی‌مورد یا لحن احساسی پرهیز کن؛ فکت‌محور بنویس.
+- هیچ پیش‌گفتار، سلام، توضیح یا متن اضافه‌ای خارج از قالب بالا ننویس.
 """
     for model_name in AVAILABLE_MODELS:
-        # ۳ بار تلاش برای هر مدل در صورت شلوغی سرور (خطای 503)
         for attempt in range(1, 4):
             try:
-                print(f"ارسال به {model_name} (تلاش {attempt})...")
                 response = client.models.generate_content(
                     model=model_name,
                     contents=prompt,
                 )
                 text = response.text.strip()
-                print(f"✅ خلاصه با موفقیت توسط {model_name} تولید شد.")
-                return f"{text}\n\n🔗 [منبع اصلی خبر]({link})"
+                return f"{text}\n\n🔗 [لینک منبع خبر]({link})"
             except Exception as e:
                 err_str = str(e)
                 if "503" in err_str:
-                    print(f"⏳ ترافیک لحظه‌ای سرور روی {model_name}. ۵ ثانیه انتظار...")
-                    time.sleep(5)
+                    time.sleep(6)
                 else:
-                    print(f"⚠️ خطای مدل {model_name}: {err_str}")
+                    print(f"⚠️ خطای جمنای ({model_name}): {err_str}")
                     break
-
     return None
 
 def send_to_telegram(message):
@@ -86,14 +103,14 @@ def send_to_telegram(message):
         res = requests.post(url, json=payload, timeout=15)
         res_json = res.json()
         if not res_json.get("ok"):
-            # اگر خطای پارس مارک‌داون داد، پیام به صورت متن ساده ارسال می‌شود
+            # ارسال بدون مارک‌داون در صورت وجود کاراکترهای ناسازگار
             payload.pop("parse_mode", None)
             res = requests.post(url, json=payload, timeout=15)
             res_json = res.json()
             if not res_json.get("ok"):
                 print(f"❌ خطای تلگرام: {res_json}")
                 return False
-        print("✅ پیام با موفقیت به کانال تلگرام ارسال شد.")
+        print("✅ خبر در کانال منتشر شد.")
         return True
     except Exception as e:
         print(f"❌ خطای اتصال به تلگرام: {e}")
@@ -101,16 +118,25 @@ def send_to_telegram(message):
 
 def main():
     sent_articles = load_sent_articles()
-    print(f"تعداد خبرهای ذخیره شده قبلی: {len(sent_articles)}")
-    
-    feed = feedparser.parse(RSS_URL)
-    print(f"تعداد خبرهای فید: {len(feed.entries)}")
     new_sent = False
 
-    for entry in reversed(feed.entries[:3]):
+    # جمع‌آوری خبرها از تمام فیدهای هدف
+    all_entries = []
+    for url in RSS_FEEDS:
+        feed = feedparser.parse(url)
+        all_entries.extend(feed.entries[:3])
+
+    # حداکثر ۲ تا ۳ خبر در هر اجرا ارسال می‌شود تا هم سهمیه حفظ شود و هم کانال شلوغ نشود
+    sent_count = 0
+    max_news_per_run = 3
+
+    for entry in all_entries:
+        if sent_count >= max_news_per_run:
+            break
+
         article_id = entry.get("id", entry.get("link"))
         if article_id not in sent_articles:
-            print(f"درحال پردازش: {entry.get('title')}")
+            print(f"در حال پردازش رویداد: {entry.get('title')}")
             summary = summarize_with_gemini(
                 entry.get("title", ""),
                 entry.get("summary", ""),
@@ -119,13 +145,20 @@ def main():
             if summary and send_to_telegram(summary):
                 sent_articles.add(article_id)
                 new_sent = True
-                time.sleep(3)
+                sent_count += 1
+                save_sent_articles(sent_articles)
+
+                # وقفه ۳ دقیقه‌ای (۱۸۰ ثانیه) بین ارسال هر خبر
+                if sent_count < max_news_per_run:
+                    print("⏳ انتظار به مدت ۳ دقیقه قبل از ارسال خبر بعدی...")
+                    time.sleep(180)
         else:
-            print("خبر قبلاً ارسال شده است.")
+            continue
 
     if new_sent:
-        save_sent_articles(sent_articles)
-        print("لیست خبرها به‌روزرسانی شد.")
+        print("پایان چرخه؛ اخبار با وقفه ۳ دقیقه‌ای ارسال شدند.")
+    else:
+        print("تحول جدیدی خارج از اخبار قبلی پیدا نشد.")
 
 if __name__ == "__main__":
     main()
