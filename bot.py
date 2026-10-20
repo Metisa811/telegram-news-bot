@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 import feedparser
 import requests
 from google import genai
@@ -12,23 +13,27 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 RSS_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
 DB_FILE = "sent_articles.json"
 
-# بررسی اولیه متغیرها
 if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not GEMINI_API_KEY:
-    print("❌ خطا: یکی از متغیرهای Secret تعریف نشده است!")
-    print(f"BOT_TOKEN: {'OK' if TELEGRAM_BOT_TOKEN else 'MISSING'}")
-    print(f"CHAT_ID: {'OK' if TELEGRAM_CHAT_ID else 'MISSING'}")
-    print(f"GEMINI_KEY: {'OK' if GEMINI_API_KEY else 'MISSING'}")
+    print("❌ خطا: متغیرهای Secret تنظیم نشده‌اند.")
     sys.exit(1)
 
 client = genai.Client(api_key=GEMINI_API_KEY)
+
+# لیست مدل‌ها به ترتیب اولویت (در صورت شلوغی، بعدی تست می‌شود)
+AVAILABLE_MODELS = [
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-2.5-pro",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash"
+]
 
 def load_sent_articles():
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 return set(json.load(f))
-        except Exception as e:
-            print(f"هشدار در خواندن فایل تاریخچه: {e}")
+        except Exception:
             return set()
     return set()
 
@@ -50,16 +55,20 @@ def summarize_with_gemini(title, summary, link):
 - یک نتیجه‌گیری یک‌جمله‌ای درباره چرایی اهمیت خبر
 فقط متن آماده ارسال به تلگرام را بدون هیچ مقدمه یا توضیح اضافه‌ای بنویس.
 """
-    try:
-        response = client.models.generate_content(
-            model="gemini-3.5-flash",
-            contents=prompt,
-        )
-        text = response.text.strip()
-        return f"{text}\n\n🔗 [منبع اصلی]({link})"
-    except Exception as e:
-        print(f"❌ خطا در جمنای: {e}")
-        return None
+    for model_name in AVAILABLE_MODELS:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            text = response.text.strip()
+            print(f"✅ خلاصه با موفقیت توسط {model_name} تولید شد.")
+            return f"{text}\n\n🔗 [منبع اصلی]({link})"
+        except Exception as e:
+            print(f"⚠️ مدل {model_name} پاسخ نداد ({e}). تلاش با مدل بعدی...")
+            time.sleep(2)
+
+    return None
 
 def send_to_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -73,7 +82,7 @@ def send_to_telegram(message):
         res = requests.post(url, json=payload, timeout=15)
         res_json = res.json()
         if not res_json.get("ok"):
-            print(f"❌ پاسخ خطای تلگرام: {res_json}")
+            print(f"❌ خطای تلگرام: {res_json}")
             return False
         print("✅ پیام با موفقیت به تلگرام ارسال شد.")
         return True
@@ -83,14 +92,9 @@ def send_to_telegram(message):
 
 def main():
     sent_articles = load_sent_articles()
-    print(f"تعداد خبرهای ارسال‌شده قبلی: {len(sent_articles)}")
-    
     feed = feedparser.parse(RSS_URL)
-    print(f"تعداد خبرهای دریافت شده از فید: {len(feed.entries)}")
-    
     new_sent = False
 
-    # بررسی ۳ خبر اول
     for entry in reversed(feed.entries[:3]):
         article_id = entry.get("id", entry.get("link"))
         if article_id not in sent_articles:
@@ -100,18 +104,14 @@ def main():
                 entry.get("summary", ""),
                 entry.get("link", "")
             )
-            if summary:
-                if send_to_telegram(summary):
-                    sent_articles.add(article_id)
-                    new_sent = True
-            else:
-                print("خلاصه جمنای خالی بود.")
-        else:
-            print("خبر قبلاً ارسال شده است.")
+            if summary and send_to_telegram(summary):
+                sent_articles.add(article_id)
+                new_sent = True
+                time.sleep(3)  # وقفه کوتاه بین پیام‌ها
 
     if new_sent:
         save_sent_articles(sent_articles)
-        print("لیست خبرها به‌روزرسانی شد.")
+        print("فایل شناسه خبرها به‌روزرسانی شد.")
 
 if __name__ == "__main__":
     main()
