@@ -1,3 +1,4 @@
+import calendar
 import html
 import json
 import os
@@ -27,16 +28,46 @@ MAX_TRIES_PER_CYCLE = 3  # هر دور حداکثر چند خبر را به هو
 RUN_MINUTES = float(os.environ.get("RUN_MINUTES", "330"))
 
 TELEGRAM_CHANNELS = [
-    "ProjectLeon7",
     "idfinfarsi",
     "withyashar",
+    "IranintlTV",
+    "BazChiShod",
 ]
+
+def gnews(query, lang="en-US", country="US"):
+    ceid = f"{country}:{lang.split('-')[0]}"
+    return (f"https://news.google.com/rss/search?q={query}+when:1d"
+            f"&hl={lang}&gl={country}&ceid={ceid}")
+
 
 # منابع اولویت‌دار
 PRIORITY_FEEDS = [
-    "https://news.google.com/rss/search?q=Iran+OR+Israel+OR+Hezbollah+OR+%22Middle+East%22+when:1d&hl=en-US&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=Iran+politics+OR+Tehran+when:1d&hl=en-US&gl=US&ceid=US:en",
+    # جستجوی عمومی ایران / خاورمیانه
+    gnews("Iran+OR+Israel+OR+Hezbollah+OR+%22Middle+East%22"),
+    gnews("Iran+politics+OR+Tehran"),
+    gnews("%22Middle+East%22+war+OR+strike+OR+missile"),
+
+    # شبکه‌های اسرائیل (عبری) از طریق Google News
+    gnews("site:now14.co.il", "he", "IL"),   # کانال ۱۴
+    gnews("site:13tv.co.il", "he", "IL"),    # کانال ۱۳
+    gnews("site:kan.org.il", "he", "IL"),    # کان ۱۱
+
+    # فاکس نیوز
+    "https://moxie.foxnews.com/google-publisher/world.xml",
+    gnews("site:foxnews.com+Iran+OR+Israel+OR+%22Middle+East%22"),
+
+    # فرماندهی مرکزی آمریکا (سنتکام)
+    gnews("site:centcom.mil"),
+    gnews("CENTCOM+OR+%22Central+Command%22"),
+
+    # رسانه‌های معتبر منطقه
+    "https://www.timesofisrael.com/feed/",
+    "https://www.jpost.com/rss/rssfeedsheadlines.aspx",
+    "https://www.aljazeera.com/xml/rss/all.xml",
+    "http://feeds.bbci.co.uk/news/world/middle_east/rss.xml",
 ]
+
+MAX_AGE_HOURS = 12  # خبرهای RSS قدیمی‌تر از این نادیده گرفته می‌شوند
 
 # منابع عمومی برای وقتی که خبر اولویت‌دار نیست
 GENERAL_FEEDS = [
@@ -108,8 +139,14 @@ def fetch_telegram_channel_posts(username):
 def fetch_rss(url, limit, force_priority=False):
     items = []
     try:
-        feed = feedparser.parse(url)
+        resp = requests.get(
+            url, timeout=15,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        feed = feedparser.parse(resp.content)
         for entry in feed.entries[:limit]:
+            pub = entry.get("published_parsed") or entry.get("updated_parsed")
+            if pub and (time.time() - calendar.timegm(pub)) > MAX_AGE_HOURS * 3600:
+                continue
             items.append({
                 "id": entry.get("id", entry.get("link")),
                 "title": clean_html(entry.get("title", "")),
