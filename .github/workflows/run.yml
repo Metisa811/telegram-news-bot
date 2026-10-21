@@ -33,6 +33,11 @@ jobs:
       - name: نصب پکیج‌ها
         run: pip install feedparser requests
 
+      - name: تنظیم git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: اجرای ربات
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -44,12 +49,11 @@ jobs:
           PYTHONUNBUFFERED: '1'
         run: python bot.py
 
-      - name: ذخیره خبرهای خوانده‌شده
+      - name: ذخیره‌ی نهایی داده‌ها
         if: always()
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add sent_articles.json
-          git commit -m "Update sent articles [skip ci]" || exit 0
-          git pull --rebase || true
+          git add sent_articles.json || true
+          git add news_archive.jsonl || true
+          git commit -m "Update news data [skip ci]" || exit 0
+          git pull --rebase --autostash || true
           git push
