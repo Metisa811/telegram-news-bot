@@ -1,6 +1,7 @@
 import calendar
 import html
 import json
+import mimetypes
 import os
 import re
 import subprocess
@@ -207,7 +208,7 @@ def save_sent(sent_list):
         json.dump(sent_list[-DB_MAX:], f, ensure_ascii=False, indent=2)
 
 
-def archive_news(item, final_text):
+def archive_news(item, final_text, image_url=""):
     rec = {
         "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "id": item["id"],
@@ -215,6 +216,7 @@ def archive_news(item, final_text):
         "title": item["title"],
         "original": item["summary"][:1500],
         "text": final_text,
+        "image": image_url,
     }
     with open(ARCHIVE_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
@@ -239,6 +241,75 @@ def git_sync():
         print(f"⚠️ خطای git: {e}")
 
 
+# ---------- تصویر خبر ----------
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+MIN_IMAGE_BYTES = 5_000
+MAX_IMAGE_BYTES = 8_000_000
+
+
+def extract_entry_image(entry):
+    """آدرس تصویر را از خود فید RSS پیدا می‌کند."""
+    for key in ("media_content", "media_thumbnail"):
+        for m in entry.get(key, []) or []:
+            u = m.get("url")
+            if u and u.startswith("http"):
+                return u
+    for l in entry.get("links", []) or []:
+        if l.get("rel") == "enclosure" and "image" in (l.get("type") or ""):
+            return l.get("href")
+    raw = entry.get("summary", "") or ""
+    for c in entry.get("content", []) or []:
+        raw += c.get("value", "")
+    m = re.search(r'<img[^>]+src=["\']([^"\']+)', raw, re.I)
+    if m and m.group(1).startswith("http"):
+        return html.unescape(m.group(1))
+    return None
+
+
+def fetch_og_image(link):
+    """اگر فید عکس نداشت، از صفحه‌ی خود خبر (og:image) می‌خواند."""
+    try:
+        r = requests.get(link, timeout=15, headers=UA, allow_redirects=True)
+        if r.status_code != 200 or "news.google.com" in urlparse(r.url).netloc:
+            return None
+        page = r.text[:300000]
+        for pat in (
+            r'<meta[^>]+(?:property|name)=["\'](?:og:image|twitter:image)["\'][^>]+content=["\']([^"\']+)',
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name)=["\'](?:og:image|twitter:image)["\']',
+        ):
+            m = re.search(pat, page, re.I)
+            if m:
+                return html.unescape(m.group(1))
+    except Exception:
+        pass
+    return None
+
+
+def download_image(url):
+    """تصویر را دانلود می‌کند؛ (بایت‌ها، نوع) یا None."""
+    try:
+        r = requests.get(url, timeout=20, headers=UA)
+        ctype = r.headers.get("Content-Type", "").split(";")[0].strip().lower()
+        if (r.status_code == 200 and ctype.startswith("image/")
+                and "svg" not in ctype
+                and MIN_IMAGE_BYTES < len(r.content) <= MAX_IMAGE_BYTES):
+            return r.content, ctype
+    except Exception:
+        pass
+    return None
+
+
+def get_photo(item):
+    """تصویر خبر: اول از فید/تلگرام، بعد از صفحه‌ی خبر. برمی‌گرداند (photo, url)."""
+    url = item.get("image")
+    if not url and item.get("link"):
+        url = fetch_og_image(item["link"])
+    if not url:
+        return None, ""
+    photo = download_image(url)
+    return photo, (url if photo else "")
+
+
 # ---------- جمع‌آوری خبر ----------
 def clean_html(text):
     text = re.sub(r"<br\s*/?>", "\n", text or "")
@@ -261,13 +332,18 @@ def fetch_telegram_channel_posts(username):
                     part, re.DOTALL)
                 if m:
                     clean_text = clean_html(m.group(1))
-                    if len(clean_text) > 40:
+                    img = re.search(
+                        r"tgme_widget_message_(?:photo_wrap|video_thumb|roundvideo_thumb)"
+                        r"[^>]*?background-image:url\('([^']+)'\)", part)
+                    image_url = html.unescape(img.group(1)) if img else None
+                    if len(clean_text) > (20 if image_url else 40):
                         posts.append({
                             "id": f"tg_{post_id}",
                             "title": clean_text.split("\n")[0][:70],
                             "summary": clean_text,
                             "priority": True,
                             "source": f"telegram:@{username}",
+                            "image": image_url,
                         })
     except Exception as e:
         print(f"⚠️ خطا در کانال @{username}: {e}")
@@ -294,6 +370,8 @@ def fetch_rss(url, limit, force_priority=False):
                 "summary": clean_html(entry.get("summary", "")),
                 "priority": force_priority,
                 "source": src_title or feed_title,
+                "link": entry.get("link"),
+                "image": extract_entry_image(entry),
             })
     except Exception as e:
         print(f"⚠️ خطا در RSS: {e}")
@@ -375,42 +453,52 @@ def summarize(title, summary):
     return None
 
 
-# ---------- تلگرام ----------
-def send_to_telegram(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": message,
-        "disable_web_page_preview": True,
-    }
+# ---------- ارسال (تلگرام و بله؛ هر دو API مشابه دارند) ----------
+CAPTION_LIMIT = 1000
+
+
+def _send(name, base_url, chat_id, message, photo=None, extra=None):
+    """اگر عکس باشد با sendPhoto می‌فرستد؛ در صورت خطا فقط متن را می‌فرستد."""
+    extra = extra or {}
     try:
-        res = requests.post(url, json=payload, timeout=15).json()
+        if photo:
+            data, ctype = photo
+            ext = mimetypes.guess_extension(ctype) or ".jpg"
+            caption_fits = len(message) <= CAPTION_LIMIT
+            form = {"chat_id": chat_id}
+            if caption_fits:
+                form["caption"] = message
+            res = requests.post(
+                f"{base_url}/sendPhoto", data=form,
+                files={"photo": (f"news{ext}", data, ctype)}, timeout=60).json()
+            if res.get("ok"):
+                if caption_fits:
+                    return True
+                # کپشن بلند است: متن جداگانه بعد از عکس
+            else:
+                print(f"⚠️ {name} sendPhoto: {str(res)[:200]} → ارسال بدون عکس")
+        payload = {"chat_id": chat_id, "text": message, **extra}
+        res = requests.post(f"{base_url}/sendMessage", json=payload, timeout=15).json()
         if not res.get("ok"):
-            print(f"⚠️ تلگرام: {res}")
+            print(f"⚠️ {name}: {str(res)[:200]}")
             return False
         return True
     except Exception as e:
-        print(f"⚠️ خطای تلگرام: {e}")
+        print(f"⚠️ خطای {name}: {e}")
         return False
 
 
-# ---------- بله ----------
-def send_to_bale(message):
+def send_to_telegram(message, photo=None):
+    return _send("تلگرام", f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}",
+                 TELEGRAM_CHAT_ID, message, photo,
+                 {"disable_web_page_preview": True})
+
+
+def send_to_bale(message, photo=None):
     if not BALE_BOT_TOKEN or not BALE_CHAT_ID:
         return False
-    url = f"https://tapi.bale.ai/bot{BALE_BOT_TOKEN}/sendMessage"
-    try:
-        chat_id = int(BALE_CHAT_ID) if BALE_CHAT_ID.lstrip("-").isdigit() else BALE_CHAT_ID
-        res = requests.post(
-            url, json={"chat_id": chat_id, "text": message}, timeout=15)
-        data = res.json()
-        if not data.get("ok"):
-            print(f"⚠️ بله: {res.status_code} {str(data)[:200]}")
-            return False
-        return True
-    except Exception as e:
-        print(f"⚠️ خطای بله: {e}")
-        return False
+    chat_id = int(BALE_CHAT_ID) if BALE_CHAT_ID.lstrip("-").isdigit() else BALE_CHAT_ID
+    return _send("بله", f"https://tapi.bale.ai/bot{BALE_BOT_TOKEN}", chat_id, message, photo)
 
 
 # ---------- یک دور کار ----------
@@ -450,13 +538,14 @@ def run_once():
         if not text:
             continue
         final = f"{text}\n\n{CHANNEL_TAG}"   # یک خط فاصله و آیدی کانال
-        tg_ok = send_to_telegram(final)
-        bale_ok = send_to_bale(final)
+        photo, image_url = get_photo(item)
+        tg_ok = send_to_telegram(final, photo)
+        bale_ok = send_to_bale(final, photo)
         if tg_ok or bale_ok:
-            print(f"✅ ارسال شد. (تلگرام: {tg_ok} | بله: {bale_ok})")
+            print(f"✅ ارسال شد. (تلگرام: {tg_ok} | بله: {bale_ok} | عکس: {'دارد' if photo else 'ندارد'})")
             sent_list.append(item["id"])
             save_sent(sent_list)
-            archive_news(item, text)
+            archive_news(item, text, image_url)
             sent_count += 1
 
 
