@@ -1,0 +1,779 @@
+{
+  "style_rules": [
+    "فارسی معیار و رسمی خبری بنویس؛ بدون عامیانه‌نویسی، شکسته‌نویسی و اصطلاحات کوچه‌بازاری.",
+    "نام افراد را کامل و رسمی بنویس؛ لقب، کنیه، مخفف عامیانه و نام‌های مردمی (مثل نام‌های خودمانی یا شوخی‌نامه) ممنوع است.",
+    "نیم‌فاصله را رعایت کن: «می‌شود»، «حزب‌الله»، «آتش‌بس».",
+    "فعل خبری ساده و روشن به کار ببر: اعلام کرد، گزارش داد، تأیید کرد، هشدار داد.",
+    "ادعا و اتهام را به گوینده نسبت بده («ادعا کرد»، «اعلام کرد») و ادعای یک طرف را واقعیت قطعی ننویس.",
+    "لحن خنثی و خبری باشد؛ صفت احساسی، جانبدارانه و تحقیرآمیز ممنوع.",
+    "اگر نام یا عنوانی در متن مبهم است حدس نزن و همان را بنویس.",
+    "نام‌های خارجی را با املای رایج رسانه‌های فارسی بنویس."
+  ],
+  "examples": [
+    {
+      "input": "ممباقر امروز رفت پیش موشتبی و گزارش داد. پیام از @WarRoom",
+      "output": "🚨 دیدار محمدباقر قالیباف با مجتبی خامنه‌ای\n• محمدباقر قالیباف امروز با مجتبی خامنه‌ای دیدار کرد.\n• قالیباف در این دیدار گزارشی ارائه کرد."
+    },
+    {
+      "input": "Reuters: CENTCOM said US forces intercepted two drones over the Red Sea on Tuesday.",
+      "output": "🚨 رهگیری دو پهپاد در دریای سرخ\n• به گزارش رویترز، فرماندهی مرکزی ایالات متحده (سنتکام) اعلام کرد نیروهای آمریکایی روز سه‌شنبه دو پهپاد را در دریای سرخ رهگیری کرده‌اند."
+    }
+  ],
+  "entries": [
+    {
+      "canonical": "محمدباقر قالیباف",
+      "type": "شخص",
+      "aliases": [
+        "قالیباف",
+        "Ghalibaf",
+        "Qalibaf"
+      ],
+      "fix": [
+        "ممباقر"
+      ],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "مجتبی خامنه‌ای",
+      "type": "شخص",
+      "aliases": [
+        "Mojtaba Khamenei",
+        "مجتبی خامنه ای"
+      ],
+      "fix": [
+        "موشتبی"
+      ],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "علی خامنه‌ای",
+      "type": "شخص",
+      "aliases": [
+        "Ali Khamenei",
+        "آیت‌الله خامنه‌ای"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "مسعود پزشکیان",
+      "type": "شخص",
+      "aliases": [
+        "Pezeshkian",
+        "پزشکیان"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "عباس عراقچی",
+      "type": "شخص",
+      "aliases": [
+        "Araghchi",
+        "عراقچی"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "دونالد ترامپ",
+      "type": "شخص",
+      "aliases": [
+        "Trump",
+        "ترامپ"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "مارکو روبیو",
+      "type": "شخص",
+      "aliases": [
+        "Rubio",
+        "روبیو"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "بنیامین نتانیاهو",
+      "type": "شخص",
+      "aliases": [
+        "Netanyahu",
+        "نتانیاهو"
+      ],
+      "fix": [
+        "بی‌بی نتانیاهو",
+        "بیبی نتانیاهو"
+      ],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "ولودیمیر زلنسکی",
+      "type": "شخص",
+      "aliases": [
+        "Zelensky",
+        "Zelenskyy",
+        "زلنسکی"
+      ],
+      "fix": [
+        "ولادیمیر زلینسکی",
+        "ولودیمیر زلینسکی",
+        "زلینسکی"
+      ],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "ولادیمیر پوتین",
+      "type": "شخص",
+      "aliases": [
+        "Putin",
+        "پوتین"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "ایمانوئل مکرون",
+      "type": "شخص",
+      "aliases": [
+        "Macron",
+        "مکرون"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "کی‌یر استارمر",
+      "type": "شخص",
+      "aliases": [
+        "Starmer",
+        "استارمر"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "فریدریش مرتس",
+      "type": "شخص",
+      "aliases": [
+        "Merz",
+        "مرتس"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "رجب طیب اردوغان",
+      "type": "شخص",
+      "aliases": [
+        "Erdogan",
+        "اردوغان"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "ایتمار بن‌گویر",
+      "type": "شخص",
+      "aliases": [
+        "Ben-Gvir",
+        "Ben Gvir",
+        "بن گویر"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "بتسلئل اسموتریچ",
+      "type": "شخص",
+      "aliases": [
+        "Smotrich",
+        "اسموتریچ"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "حسن نصرالله",
+      "type": "شخص",
+      "aliases": [
+        "Nasrallah",
+        "نصرالله"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "نعیم قاسم",
+      "type": "شخص",
+      "aliases": [
+        "Naim Qassem",
+        "Naim Qasem"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "عبدالملک الحوثی",
+      "type": "شخص",
+      "aliases": [
+        "Abdul-Malik al-Houthi",
+        "عبدالملک حوثی"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "رافائل گروسی",
+      "type": "شخص",
+      "aliases": [
+        "Rafael Grossi",
+        "Grossi",
+        "گروسی"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "آنتونیو گوترش",
+      "type": "شخص",
+      "aliases": [
+        "Guterres",
+        "گوترس",
+        "گوترش"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "مارک روته",
+      "type": "شخص",
+      "aliases": [
+        "Mark Rutte",
+        "Rutte",
+        "روته"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "محمد بن سلمان",
+      "type": "شخص",
+      "aliases": [
+        "Mohammed bin Salman",
+        "MBS"
+      ],
+      "fix": [],
+      "note": "املای رسمی؛ لقب و کنیه ممنوع"
+    },
+    {
+      "canonical": "سپاه پاسداران انقلاب اسلامی",
+      "type": "نهاد",
+      "aliases": [
+        "سپاه",
+        "IRGC",
+        "Revolutionary Guards",
+        "Revolutionary Guard"
+      ],
+      "fix": [],
+      "note": "در ادامه‌ی متن می‌توان «سپاه» نوشت"
+    },
+    {
+      "canonical": "نیروی قدس سپاه",
+      "type": "نهاد",
+      "aliases": [
+        "Quds Force",
+        "نیروی قدس"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "ارتش اسرائیل",
+      "type": "نهاد",
+      "aliases": [
+        "IDF",
+        "Israel Defense Forces",
+        "Israeli army",
+        "ارتش دفاعی اسرائیل",
+        "צה\"ל"
+      ],
+      "fix": [],
+      "note": "معادل IDF"
+    },
+    {
+      "canonical": "شاباک",
+      "type": "نهاد",
+      "aliases": [
+        "Shin Bet",
+        "Shabak"
+      ],
+      "fix": [],
+      "note": "سازمان امنیت داخلی اسرائیل"
+    },
+    {
+      "canonical": "موساد",
+      "type": "نهاد",
+      "aliases": [
+        "Mossad"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "حماس",
+      "type": "نهاد",
+      "aliases": [
+        "Hamas"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "حزب‌الله",
+      "type": "نهاد",
+      "aliases": [
+        "Hezbollah",
+        "Hizbullah"
+      ],
+      "fix": [
+        "حزب الله"
+      ],
+      "note": ""
+    },
+    {
+      "canonical": "حوثی‌ها",
+      "type": "نهاد",
+      "aliases": [
+        "Houthis",
+        "Houthi",
+        "انصارالله"
+      ],
+      "fix": [
+        "حوثی ها"
+      ],
+      "note": ""
+    },
+    {
+      "canonical": "جهاد اسلامی فلسطین",
+      "type": "نهاد",
+      "aliases": [
+        "Palestinian Islamic Jihad"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "فرماندهی مرکزی ایالات متحده (سنتکام)",
+      "type": "نهاد",
+      "aliases": [
+        "CENTCOM",
+        "Central Command",
+        "سنتکام"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "پنتاگون",
+      "type": "نهاد",
+      "aliases": [
+        "Pentagon"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "کاخ سفید",
+      "type": "نهاد",
+      "aliases": [
+        "White House"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "ناتو",
+      "type": "نهاد",
+      "aliases": [
+        "NATO"
+      ],
+      "fix": [],
+      "note": "پیمان آتلانتیک شمالی"
+    },
+    {
+      "canonical": "اتحادیه اروپا",
+      "type": "نهاد",
+      "aliases": [
+        "European Union",
+        "EU"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "سازمان ملل متحد",
+      "type": "نهاد",
+      "aliases": [
+        "United Nations",
+        "UN"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "شورای امنیت سازمان ملل متحد",
+      "type": "نهاد",
+      "aliases": [
+        "UN Security Council",
+        "Security Council"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "آژانس بین‌المللی انرژی اتمی",
+      "type": "نهاد",
+      "aliases": [
+        "IAEA",
+        "International Atomic Energy Agency"
+      ],
+      "fix": [
+        "آژانس اتمی"
+      ],
+      "note": ""
+    },
+    {
+      "canonical": "برجام",
+      "type": "نهاد",
+      "aliases": [
+        "JCPOA"
+      ],
+      "fix": [],
+      "note": "برنامه جامع اقدام مشترک"
+    },
+    {
+      "canonical": "کنست",
+      "type": "نهاد",
+      "aliases": [
+        "Knesset"
+      ],
+      "fix": [],
+      "note": "پارلمان اسرائیل"
+    },
+    {
+      "canonical": "مجلس شورای اسلامی",
+      "type": "نهاد",
+      "aliases": [
+        "Iranian parliament",
+        "Majlis"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "شورای عالی امنیت ملی",
+      "type": "نهاد",
+      "aliases": [
+        "Supreme National Security Council"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "وزارت خارجه ایران",
+      "type": "نهاد",
+      "aliases": [
+        "Iran foreign ministry",
+        "Iranian Foreign Ministry"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "ایران اینترنشنال",
+      "type": "نهاد",
+      "aliases": [
+        "Iran International",
+        "IranintlTV"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "رویترز",
+      "type": "نهاد",
+      "aliases": [
+        "Reuters"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "آسوشیتدپرس",
+      "type": "نهاد",
+      "aliases": [
+        "Associated Press",
+        "AP News"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "فاکس نیوز",
+      "type": "نهاد",
+      "aliases": [
+        "Fox News",
+        "foxnews"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "بی‌بی‌سی",
+      "type": "نهاد",
+      "aliases": [
+        "BBC"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "الجزیره",
+      "type": "نهاد",
+      "aliases": [
+        "Al Jazeera",
+        "Aljazeera"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "تایمز اسرائیل",
+      "type": "نهاد",
+      "aliases": [
+        "Times of Israel"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "جروزالم‌پست",
+      "type": "نهاد",
+      "aliases": [
+        "Jerusalem Post",
+        "JPost"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "شبکه کان ۱۱ اسرائیل",
+      "type": "نهاد",
+      "aliases": [
+        "Kan 11",
+        "Kan News",
+        "כאן"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "شبکه ۱۳ اسرائیل",
+      "type": "نهاد",
+      "aliases": [
+        "Channel 13",
+        "13tv",
+        "ערוץ 13"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "شبکه ۱۴ اسرائیل",
+      "type": "نهاد",
+      "aliases": [
+        "Channel 14",
+        "Now14",
+        "ערוץ 14"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "خبرگزاری ایرنا",
+      "type": "نهاد",
+      "aliases": [
+        "IRNA"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "خبرگزاری تسنیم",
+      "type": "نهاد",
+      "aliases": [
+        "Tasnim"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "خبرگزاری فارس",
+      "type": "نهاد",
+      "aliases": [
+        "Fars News"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "خبرگزاری مهر",
+      "type": "نهاد",
+      "aliases": [
+        "Mehr News"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "تنگه هرمز",
+      "type": "اصطلاح",
+      "aliases": [
+        "Strait of Hormuz",
+        "Hormuz"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "نوار غزه",
+      "type": "اصطلاح",
+      "aliases": [
+        "Gaza Strip"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "کرانه باختری",
+      "type": "اصطلاح",
+      "aliases": [
+        "West Bank"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "اورانیوم غنی‌شده",
+      "type": "اصطلاح",
+      "aliases": [
+        "enriched uranium"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "غنی‌سازی اورانیوم",
+      "type": "اصطلاح",
+      "aliases": [
+        "uranium enrichment",
+        "enrichment"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "سانتریفیوژ",
+      "type": "اصطلاح",
+      "aliases": [
+        "centrifuge",
+        "centrifuges"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "موشک بالستیک",
+      "type": "اصطلاح",
+      "aliases": [
+        "ballistic missile"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "پهپاد",
+      "type": "اصطلاح",
+      "aliases": [
+        "drone",
+        "UAV"
+      ],
+      "fix": [
+        "هواپیمای بدون سرنشین"
+      ],
+      "note": ""
+    },
+    {
+      "canonical": "گنبد آهنین",
+      "type": "اصطلاح",
+      "aliases": [
+        "Iron Dome"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "پدافند هوایی",
+      "type": "اصطلاح",
+      "aliases": [
+        "air defense",
+        "air defence"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "آتش‌بس",
+      "type": "اصطلاح",
+      "aliases": [
+        "ceasefire",
+        "cease-fire"
+      ],
+      "fix": [
+        "آتش بس"
+      ],
+      "note": ""
+    },
+    {
+      "canonical": "تحریم‌ها",
+      "type": "اصطلاح",
+      "aliases": [
+        "sanctions"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "حمله هوایی",
+      "type": "اصطلاح",
+      "aliases": [
+        "airstrike",
+        "air strike"
+      ],
+      "fix": [],
+      "note": ""
+    },
+    {
+      "canonical": "عملیات زمینی",
+      "type": "اصطلاح",
+      "aliases": [
+        "ground operation",
+        "ground offensive"
+      ],
+      "fix": [],
+      "note": ""
+    }
+  ]
+}
