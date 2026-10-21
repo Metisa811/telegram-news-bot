@@ -13,6 +13,10 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
+# بله (اختیاری): اگر این دو تنظیم شوند، خبرها در بله هم ارسال می‌شوند
+BALE_BOT_TOKEN = os.environ.get("BALE_BOT_TOKEN")
+BALE_CHAT_ID = os.environ.get("BALE_CHAT_ID")
+
 if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not GROQ_API_KEY:
     print("❌ خطا: متغیرهای Secret تنظیم نشده‌اند.")
     sys.exit(1)
@@ -239,6 +243,25 @@ def send_to_telegram(message):
         return False
 
 
+# ---------- بله ----------
+def send_to_bale(message):
+    if not BALE_BOT_TOKEN or not BALE_CHAT_ID:
+        return False
+    url = f"https://tapi.bale.ai/bot{BALE_BOT_TOKEN}/sendMessage"
+    try:
+        chat_id = int(BALE_CHAT_ID) if BALE_CHAT_ID.lstrip("-").isdigit() else BALE_CHAT_ID
+        res = requests.post(
+            url, json={"chat_id": chat_id, "text": message}, timeout=15)
+        data = res.json()
+        if not data.get("ok"):
+            print(f"⚠️ بله: {res.status_code} {str(data)[:200]}")
+            return False
+        return True
+    except Exception as e:
+        print(f"⚠️ خطای بله: {e}")
+        return False
+
+
 # ---------- یک دور کار ----------
 def run_once():
     sent_list = load_sent()
@@ -276,8 +299,12 @@ def run_once():
         print(f"{tag} پردازش: {item['title'][:50]}")
 
         text = summarize(item["title"], item["summary"])
-        if text and send_to_telegram(text):
-            print("✅ ارسال شد.")
+        if not text:
+            continue
+        tg_ok = send_to_telegram(text)
+        bale_ok = send_to_bale(text)
+        if tg_ok or bale_ok:
+            print(f"✅ ارسال شد. (تلگرام: {tg_ok} | بله: {bale_ok})")
             sent_list.append(item["id"])
             save_sent(sent_list)
             sent_count += 1
